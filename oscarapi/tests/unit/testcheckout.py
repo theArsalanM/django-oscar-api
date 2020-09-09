@@ -35,7 +35,7 @@ class CheckoutTest(APITest):
     def _get_common_payload(self, basket_url):
         return {
             "basket": basket_url,
-            "email": "henk@example.com",
+            "guest_email": "henk@example.com",
             "total": "50.00",
             "shipping_method_code": "no-shipping-required",
             "shipping_charge": {"currency": "EUR", "excl_tax": "0.00", "tax": "0.00"},
@@ -96,8 +96,9 @@ class CheckoutTest(APITest):
         response = self.post("api-checkout", **payload)
         self.assertEqual(response.status_code, 200, response.data)
         self.assertEqual(
-            response.data["email"],
-            "nobody@nobody.niks",
+            response.data["guest_email"],
+            "",
+            "Guest email should be blank since user was authenticated",
         )
         self.assertEqual(
             Basket.objects.get(pk=basket["id"]).status,
@@ -130,8 +131,9 @@ class CheckoutTest(APITest):
         )
         self.assertEqual(response.status_code, 200, response.data)
         self.assertEqual(
-            response.data["email"],
-            "nobody@nobody.niks",
+            response.data["guest_email"],
+            "",
+            "Guest email should be blank since user was authenticated",
         )
         self.assertEqual(
             Basket.objects.get(pk=basket["id"]).status,
@@ -345,6 +347,7 @@ class CheckoutTest(APITest):
         basket = response.data
 
         payload = self._get_common_payload(basket["url"])
+        del payload["guest_email"]
 
         with self.settings(OSCAR_ALLOW_ANON_CHECKOUT=True):
             response = self.post("api-checkout", **payload)
@@ -369,7 +372,7 @@ class CheckoutTest(APITest):
             payload["guest_email"] = "henk@example.com"
             response = self.post("api-checkout", **payload)
             self.assertEqual(response.status_code, 200)
-            self.assertEqual(response.data["email"], "henk@example.com")
+            self.assertEqual(response.data["guest_email"], "henk@example.com")
             self.assertEqual(
                 Basket.objects.get(pk=basket["id"]).status,
                 "Frozen",

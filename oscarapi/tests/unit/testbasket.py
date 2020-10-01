@@ -1028,9 +1028,7 @@ class BasketTest(APITest):
         self.hlogin("nobody", "nobody", session_id="nobody")
         self.response = self.get("api-login")
         self.response.assertStatusEqual(405)
-        self.response = self.get(
-            "api-login", session_id="nobody", authenticated=True
-        )
+        self.response = self.get("api-login", session_id="nobody", authenticated=True)
         self.response.assertStatusEqual(200)
         self.response.assertValueEqual("username", "nobody")
 

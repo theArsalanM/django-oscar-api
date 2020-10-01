@@ -22,18 +22,17 @@ class LoginTest(APITest):
         )
 
         # check authentication worked
-        with self.settings(DEBUG=True, OSCARAPI_USER_FIELDS=("username", "id")):
+        with self.settings(OSCARAPI_USER_FIELDS=("username", "email")):
             response = self.get("api-login", session_id="koe", authenticated=True)
             parsed_response = response.data
 
             self.assertEqual(parsed_response["username"], "nobody")
-            self.assertEqual(parsed_response["id"], 2)
+            self.assertEqual(parsed_response["email"], "nobody@nobody.niks")
 
         # note that this shows that we can move a session from one user to the
         # other! This is the responsibility of the client application!
         with self.settings(
             OSCARAPI_BLOCK_ADMIN_API_ACCESS=False,
-            DEBUG=True,
             OSCARAPI_USER_FIELDS=("username", "id"),
         ):
             response = self.post(
@@ -54,7 +53,7 @@ class LoginTest(APITest):
 
             self.assertEqual(response.status_code, 200)
             self.assertEqual(parsed_response["username"], "admin")
-            self.assertEqual(parsed_response["id"], 1)
+            self.assertEqual(parsed_response["email"], "admin@admin.admin")
 
     def test_failed_login_with_header(self):
         "Failed login should not upgrade to an authenticated session"
@@ -72,10 +71,9 @@ class LoginTest(APITest):
         )
 
         # check authentication didn't work
-        with self.settings(DEBUG=True, OSCARAPI_USER_FIELDS=("username", "id")):
+        with self.settings(OSCARAPI_USER_FIELDS=("username", "email")):
             response = self.get("api-login")
-            self.assertFalse(response.content)
-            self.assertEqual(response.status_code, 204)
+            self.assertEqual(response.status_code, 405)
 
     def test_login_without_header(self):
         "It should be possible to login using the normal cookie session"
@@ -87,19 +85,18 @@ class LoginTest(APITest):
         self.assertNotIn("Session-Id", response)
 
         # check authentication worked
-        with self.settings(DEBUG=True, OSCARAPI_USER_FIELDS=("username", "id")):
+        with self.settings(OSCARAPI_USER_FIELDS=("username", "email")):
             response = self.get("api-login")
             parsed_response = response.data
 
             self.assertEqual(parsed_response["username"], "nobody")
-            self.assertEqual(parsed_response["id"], 2)
+            self.assertEqual(parsed_response["email"], "nobody@nobody.niks")
 
         # using cookie sessions it is not possible to pass 1 session to another
         # user
         with self.settings(
             OSCARAPI_BLOCK_ADMIN_API_ACCESS=False,
-            DEBUG=True,
-            OSCARAPI_USER_FIELDS=("username", "id"),
+            OSCARAPI_USER_FIELDS=("username", "email"),
         ):
             response = self.post("api-login", username="admin", password="admin")
 
@@ -112,7 +109,7 @@ class LoginTest(APITest):
             parsed_response = response.data
 
             self.assertEqual(parsed_response["username"], "nobody")
-            self.assertEqual(parsed_response["id"], 2)
+            self.assertEqual(parsed_response["email"], "nobody@nobody.niks")
 
     def test_logged_in_users_can_not_login_again_via_the_api(self):
         "It should not be possible to move a cookie session to a header session"
@@ -165,7 +162,7 @@ class LoginTest(APITest):
             }
             session_id = session_id_from_parsed_session_uri(parsed_session_uri)
             self.assertTrue(session.exists(session_id))
-            self.assertEqual(response.status_code, 204)
+            self.assertEqual(response.status_code, 405)
 
             # delete the session
             response = self.delete("api-login", session_id="koe")
@@ -188,8 +185,7 @@ class LoginTest(APITest):
             self.assertFalse(session.exists(session_id))
 
             response = self.get("api-login")
-
-            self.assertEqual(response.status_code, 204)
+            self.assertEqual(response.status_code, 405)
 
     def test_can_not_start_authenticated_sessions_unauthenticated(self):
         "While anonymous session will just be started when not existing yet, authenticated ones can only be created by loggin in"

@@ -50,12 +50,9 @@ class LoginView(APIView):
     serializer_class = LoginSerializer
 
     def get(self, request, *args, **kwargs):
-        if settings.DEBUG:
-            if request.user.is_authenticated:
-                ser = UserSerializer(request.user, many=False)
-                return Response(ser.data)
-            return Response(status=status.HTTP_204_NO_CONTENT)
-
+        if request.user.is_authenticated:
+            ser = UserSerializer(request.user, many=False)
+            return Response(ser.data)
         raise MethodNotAllowed("GET")
 
     def merge_baskets(self, anonymous_basket, basket):
